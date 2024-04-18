@@ -1,11 +1,19 @@
 import pandas as pd 
 import plotly.express as px
+from sklearn.feature_selection import SelectKBest, chi2
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report
+from sklearn.preprocessing import StandardScaler
+import numpy as np
 
-pd.set_option('display.max_columns',None)
+#pd.set_option('display.max_columns',None)
+#pd.set_option('display.max_rows', None)
 JP_df = pd.read_csv("C:/Users/Iaine/.vscode/Python Projects/Job Placement Data + Exploratory Analysis/job_placement.csv")
 JP_df = JP_df.rename(columns = {"stream":"major"})
 JP_df["college_name"] = JP_df["college_name"].astype("string")
 JP_df["gender"] = JP_df["gender"].astype("string")
+print(JP_df.dtypes)
 #Setting Up The Data To be Messed With 
 
 
@@ -17,20 +25,43 @@ jp_dupe = JP_df.duplicated()
 print(jp_dupe[jp_dupe == "True"])
 #There's no duplicates in the data 
 
-mean_salaries_per_college_JP_df = JP_df.groupby("college_name")["salary"].mean().sort_values()
-print(mean_salaries_per_college_JP_df)
-#Average salary per college 
+#print(JP_df.groupby("name").count())
+#It seems like data used random names to keep anonymity, the name column means nothing to the data 
 
-mean_salaries_per_college_JP_df = JP_df.groupby("major")["salary"].mean().sort_values()
-print(mean_salaries_per_college_JP_df)
-#Average salary per major 
+JP_df_noName = JP_df.drop("name", inplace = False, axis = 1)
+#print(JP_df_noName)
 
-#for i in range(len(JP_df)):
-    #if(JP_df.iloc[i]["salary"] == 0):
-        #JP_df.drop(i)
+#print(JP_df_noName["degree"].unique())
+#everyone has a bachelor's degree in this data set, dropping it 
+JP_df_noName_noDegree = JP_df_noName.drop("degree",inplace = False, axis = 1)
+#print(JP_df_noName_noDegree)
 
-#print(JP_df.loc[JP_df["salary"] == 0])
+#Replace NAN values 
+JP_df_noName_noDegree = JP_df_noName_noDegree.fillna(0)
 
-#salaries_fig = px.histogram(JP_df,x = "salary")
-#salaries_fig.show()
-#Creating a histogram that is a histogram of the salaries and the counts of the salaries 
+
+#ss = StandardScaler()
+#df_scaled = pd.DataFrame(JP_df_noName_noDegree).to_numpy()
+#print(df_scaled)
+#df_scaled = pd.DataFrame(ss.fit_transform(df_scaled),columns = df_scaled.columns)
+
+#features 
+#no gender or college name or major
+feature_columns = np.array(["age","gpa","years_of_experience"])
+X = JP_df_noName_noDegree[feature_columns]
+#target
+Y = JP_df_noName_noDegree.placement_status
+
+#selector = SelectKBest(chi2,k = 5)
+#X_new = selector.fit_transform(X,Y)
+#print(selector.get_support())
+
+X_train, X_test, Y_train, Y_test = train_test_split(X,Y,test_size = .25, train_size = .75)
+
+logReg = LogisticRegression()
+logReg.fit(X_train,Y_train)
+
+Y_predicted = logReg.predict(X_test)
+
+target_names = ["Placed","Not Placed"]
+print(classification_report(Y_test,Y_predicted, target_names = target_names))
