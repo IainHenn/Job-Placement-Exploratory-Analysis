@@ -5,6 +5,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
 from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import precision_recall_curve
 import numpy as np
 
 #pd.set_option('display.max_columns',None)
@@ -39,24 +40,50 @@ JP_df_noName_noDegree = JP_df_noName.drop("degree",inplace = False, axis = 1)
 #Replace NAN values 
 JP_df_noName_noDegree = JP_df_noName_noDegree.fillna(0)
 
+#Feature Encoding****
+#Need to convert categorical variables to a numeric format (i.e. gender, major, and college_name)
+print(JP_df_noName_noDegree)
 
-#ss = StandardScaler()
-#df_scaled = pd.DataFrame(JP_df_noName_noDegree).to_numpy()
-#print(df_scaled)
-#df_scaled = pd.DataFrame(ss.fit_transform(df_scaled),columns = df_scaled.columns)
+#gender feature encoded 
+JP_df_cleaned = JP_df_noName_noDegree 
+JP_df_cleaned["gender"] = JP_df_cleaned["gender"].replace("M","1")
+JP_df_cleaned["gender"] = JP_df_cleaned["gender"].replace("F","0")
+JP_df_cleaned["gender"] = JP_df_cleaned["gender"].astype("int")
+
+#major feature encoded 
+# 1 - (CS), 2 - (EE), 3 - (E&C), 4 - (IT), 5 - (ME)
+JP_df_cleaned["major"] = JP_df_cleaned["major"].replace("Computer Science","1")
+JP_df_cleaned["major"] = JP_df_cleaned["major"].replace("Electrical Engineering","2")
+JP_df_cleaned["major"] = JP_df_cleaned["major"].replace("Electronics and Communication","3")
+JP_df_cleaned["major"] = JP_df_cleaned["major"].replace("Information Technology","4")
+JP_df_cleaned["major"] = JP_df_cleaned["major"].replace("Mechanical Engineering","5")
+JP_df_cleaned["major"] = JP_df_cleaned["major"].astype("int")
+
+#college_name feature encoded
+print(JP_df_cleaned["college_name"].nunique())
+unique_colleges = JP_df_cleaned["college_name"].unique()
+for i in range(0,JP_df_cleaned["college_name"].nunique()):
+    JP_df_cleaned["college_name"] = JP_df_cleaned["college_name"].replace(unique_colleges[i],str(i+1))
+
+
+#placement_status feature encoded 
+JP_df_cleaned["placement_status"] = JP_df_cleaned["placement_status"].replace("Placed","1")
+JP_df_cleaned["placement_status"] = JP_df_cleaned["placement_status"].replace("Not Placed","0")
+
+
 
 #features 
 #no gender or college name or major
-feature_columns = np.array(["age","gpa","years_of_experience"])
+feature_columns = np.array(["age","gender","major","college_name","gpa","years_of_experience"])
 X = JP_df_noName_noDegree[feature_columns]
 #target
 Y = JP_df_noName_noDegree.placement_status
 
-#selector = SelectKBest(chi2,k = 5)
-#X_new = selector.fit_transform(X,Y)
-#print(selector.get_support())
+selector = SelectKBest(chi2,k = 5)
+X_new = selector.fit_transform(X,Y)
+print(selector.get_support())
 
-X_train, X_test, Y_train, Y_test = train_test_split(X,Y,test_size = .25, train_size = .75)
+X_train, X_test, Y_train, Y_test = train_test_split(X_new,Y,test_size = .25, train_size = .75)
 
 logReg = LogisticRegression()
 logReg.fit(X_train,Y_train)
